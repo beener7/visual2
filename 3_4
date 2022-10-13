@@ -1,0 +1,270 @@
+#include <windows.h>
+#include <TCHAR.h>
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
+{
+	HWND     hwnd;
+	MSG		 msg;
+	WNDCLASS WndClass;
+	WndClass.style = CS_HREDRAW | CS_VREDRAW;
+	WndClass.lpfnWndProc = WndProc;
+	WndClass.cbClsExtra = 0;
+	WndClass.cbWndExtra = 0;
+	WndClass.hInstance = hInstance;
+	WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+
+	WndClass.hCursor = LoadCursor(NULL, IDC_ARROW);  	// 커서 지정
+
+	WndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+	WndClass.lpszMenuName = NULL;
+	WndClass.lpszClassName = _T("Window Class Name");
+	RegisterClass(&WndClass);
+	hwnd = CreateWindow(_T("Window Class Name"),
+		_T("Window Title Name"),
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		NULL,
+		NULL,
+		hInstance,
+		NULL
+	);
+	ShowWindow(hwnd, nCmdShow);
+	UpdateWindow(hwnd);
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+	return (int)msg.wParam;
+}
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
+{
+	HDC			hdc;
+	PAINTSTRUCT	ps;
+	static int x, y, r,x1,y1;
+	static RECT rectView;
+	static bool timerOn;
+	static bool right, up, down, left;
+	static bool flag;
+	HPEN hPen, oldPen;
+
+	switch (iMsg)
+	{
+	case WM_CREATE:
+		GetClientRect(hwnd, &rectView);
+		r = 20;
+		x = 20;
+		y = 20;
+		x1 = 60;
+		y1 = 20;
+
+		timerOn = false;
+		right = false;
+		up = false;
+		down = false;
+		left = false;
+		break;
+
+	case WM_PAINT:
+		hdc = BeginPaint(hwnd, &ps);
+		GetClientRect(hwnd, &rectView);
+		Rectangle(hdc, 0, 0, rectView.right - 20, rectView.bottom - 20);
+
+
+		if (x + r > rectView.right - 20) { x = rectView.right - 20 - r; x1 = x - 20 - r; }
+		if (x - r < rectView.left) { x = rectView.left + r; x1 = x + 20 + r; }
+		if (y - 20 < rectView.top) { y = rectView.top + r; y1 = y + 20 + r; }
+		if (y + r > rectView.bottom - 20) { y = rectView.bottom - 20 - r; y1 = y - 20 - r; }
+
+		hPen = CreatePen(LINECAPS, 1, RGB(255, 0, 0));
+		oldPen = (HPEN)SelectObject(hdc, hPen);
+		Ellipse(hdc, x - r, y - r, x + r, y + r);
+		SelectObject(hdc, oldPen);
+		DeleteObject(hPen);
+
+		hPen = CreatePen(LINECAPS, 1, RGB(0, 0, 255));
+		oldPen = (HPEN)SelectObject(hdc, hPen);
+		Ellipse(hdc, x1 - r, y1 - r, x1 + r, y1 + r);
+		SelectObject(hdc, oldPen);
+		DeleteObject(hPen);
+
+		EndPaint(hwnd, &ps);
+
+		return 0;
+
+	case WM_KEYUP:
+		flag = false;
+		InvalidateRgn(hwnd, NULL, TRUE);
+		break;
+
+	case WM_KEYDOWN:
+		flag = true;
+
+		if (wParam == VK_RETURN)
+		{
+			if (timerOn == false)
+			{
+				SetTimer(hwnd, 1, 70, NULL);
+				timerOn = true;
+			}
+
+			else if (timerOn == true)
+			{
+				KillTimer(hwnd, 1);
+				timerOn = false;
+			}
+		}
+
+		if (wParam == VK_HOME)
+		{
+			x = r;
+			y = r;
+			x1 = x + 40;
+			y1 = y;
+		}
+
+		if (wParam == VK_RIGHT)
+		{
+			if (timerOn == false) {
+				x1 = x;
+				y1 = y;
+				x += 40;
+				if (x + r > rectView.right - 20) 
+				{ 
+					x = rectView.right - 20 - r;
+					x1 = x - 20 - r;
+				}
+			}
+			right = true;
+			up = false;
+			down = false;
+			left = false;
+
+		}
+
+		if (wParam == VK_LEFT)
+		{
+			if (timerOn == false)
+			{
+				x1 = x;
+				y1 = y;
+				x -= 40;
+				if (x - r < rectView.left) 
+				{
+					x = rectView.left + r; 
+					x1 = x + 20 + r;
+				}
+			}
+			right = false;
+			up = false;
+			down = false;
+			left = true;
+		}
+
+		if (wParam == VK_DOWN)
+		{
+			if (timerOn == false)
+			{
+				x1 = x;
+				y1 = y;
+				y += 40;
+				if (y + r > rectView.bottom - 20)
+				{ 
+					y = rectView.bottom - 20 - r; 
+					y1 = y-20-r;
+				}
+			}
+			right = false;
+			up = false;
+			down = true;
+			left = false; //20193205 조상연
+		}
+
+		if (wParam == VK_UP)
+		{
+			if (timerOn == false)
+			{
+				x1 = x;
+				y1 = y;
+				y -= 40;
+				if (y - 20 < rectView.top) 
+				{ 
+					y = rectView.top + r; 
+					y1 = y + 20 + r;
+				}
+			}
+			right = false;
+			up = true;
+			down = false;
+			left = false;
+		}
+
+
+		InvalidateRgn(hwnd, NULL, TRUE);
+		break;
+
+	case WM_TIMER:
+		if (right == true)
+		{
+			
+			x1 = x;
+			y1 = y;
+			x += 40;
+			if (x + r > rectView.right - 20) 
+			{
+			x = rectView.right - 20 - r;
+			x1 = x - 20 - r;
+			}
+			
+		}
+		if (left == true)
+		{
+			x1 = x;
+			y1 = y;
+			x -= 40;
+			if (x - r < rectView.left) 
+			{ 
+				x = rectView.left + r; 
+				x1 = x + 20 + r;
+			}
+		}
+
+		if (up == true) //20193205 조상연
+		{
+			x1 = x;
+			y1 = y;
+			y -= 40;
+			if (y - 20 < rectView.top)
+			{
+				y = rectView.top + r; 
+				y1 = y + 20 + r;
+			}
+		}
+
+		if (down == true)
+		{
+			x1 = x;
+			y1 = y;
+			y += 40;
+			if (y + r > rectView.bottom - 20) 
+			{
+				y = rectView.bottom - 20 - r; 
+				y1 = y - 20 - r;
+			}
+		}
+		InvalidateRgn(hwnd, NULL, TRUE);
+		break;
+
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		KillTimer(hwnd, 1);
+		break;
+	}
+	return DefWindowProc(hwnd, iMsg, wParam, lParam);
+}
