@@ -1,0 +1,147 @@
+
+//20193205 조상연
+
+#include <windows.h>
+#include <TCHAR.h>
+#include <math.h>
+
+#define R 50
+
+static int array[32];
+
+
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
+{
+	HWND     hwnd;
+	MSG		 msg;
+	WNDCLASS WndClass;
+	WndClass.style = CS_HREDRAW | CS_VREDRAW;
+	WndClass.lpfnWndProc = WndProc;
+	WndClass.cbClsExtra = 0;
+	WndClass.cbWndExtra = 0;
+	WndClass.hInstance = hInstance;
+	WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+
+	WndClass.hCursor = LoadCursor(NULL, IDC_ARROW);  	// 커서 지정
+
+	WndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+	WndClass.lpszMenuName = NULL;
+	WndClass.lpszClassName = _T("Window Class Name");
+	RegisterClass(&WndClass);
+	hwnd = CreateWindow(_T("Window Class Name"),
+		_T("Window Title Name"),
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		NULL,
+		NULL,
+		hInstance,
+		NULL
+	);
+	ShowWindow(hwnd, nCmdShow);
+	UpdateWindow(hwnd);
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+	return (int)msg.wParam;
+}
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
+{
+	HDC hdc;
+	PAINTSTRUCT ps;
+
+	static bool a;
+	static int i, j,x,y;
+	int mx, my;
+	HPEN hPen, oldPen;
+
+	switch (iMsg)
+	{
+	case WM_CREATE:
+		a = false;
+		return 0;
+
+	case WM_PAINT:
+		hdc = BeginPaint(hwnd, &ps);
+		
+		for( i=0; i<5;i++ )
+		{
+			MoveToEx(hdc, 0, R*2*i, NULL);  //가로
+			LineTo(hdc, 800, R * 2 * i);
+		}
+
+		for( i =0; i<9;i++)
+		{
+			MoveToEx(hdc, R*2*i, 0, NULL); //세로
+			LineTo(hdc, R * 2 * i, 400);
+		}
+
+
+
+		for(j=0;j<4;j++)
+		{
+			for(i = 0;i<8;i++)
+			{
+				if(array[j*8+i] > 0)
+				{
+					if (array[j * 8 + i] % 2 == 1) {
+
+						hPen = CreatePen(LINECAPS, 3, RGB(255, 0, 0));
+						oldPen = (HPEN)SelectObject(hdc, hPen);
+
+						Ellipse(hdc, i * 100 + 50 - R, j * 100 + 50 - R, i * 100 + 50 + R, j * 100 + 50 + R);
+
+						SelectObject(hdc, oldPen);
+						DeleteObject(hPen);
+					}
+					else
+					{
+						hPen = CreatePen(LINECAPS, 3, RGB(0 ,0, 255));
+						oldPen = (HPEN)SelectObject(hdc, hPen);
+
+						Ellipse(hdc, i * 100 + 50 - R, j * 100 + 50 - R, i * 100 + 50 + R, j * 100 + 50 + R);
+
+						SelectObject(hdc, oldPen);
+						DeleteObject(hPen);
+					}
+				}
+			}
+		}
+
+		EndPaint(hwnd, &ps);
+		return 0;
+
+
+	case WM_LBUTTONDOWN:
+
+		mx = LOWORD(lParam);
+		my = HIWORD(lParam);
+		
+
+		for (j = 1; j < 5; j++) {
+			for (i = 1; i < 9; i++) {
+				if ( mx >(i-1)*R*2  && mx < i * R * 2 &&    my>(j-1)*R*2       &&  my < j * R * 2) {
+					array[(j-1)*8+(i-1)] += 1;
+					break;
+				}
+			}
+		}
+
+		InvalidateRgn(hwnd, NULL, TRUE);
+		break;
+
+
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		return 0;
+	}
+	return DefWindowProc(hwnd, iMsg, wParam, lParam);
+}
